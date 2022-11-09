@@ -275,9 +275,9 @@ async function pkgid(crate = {}) {
     // we actually use cargo-metadata so it works without a Cargo.lock
     // and equally well for single crates and workspace crates, but the
     // API is unchanged from original, like if this was pkgid.
-    var _a;
     (0, core_1.debug)(`checking and parsing metadata to find name=${crate.name} path=${crate.path}`);
-    const pkgs = (_a = JSON.parse(await execWithOutput('cargo', ['metadata', '--format-version=1']))) === null || _a === void 0 ? void 0 : _a.workspace_members;
+    const metadata = JSON.parse(await execWithOutput('cargo', ['metadata', '--format-version=1']));
+    const pkgs = metadata === null || metadata === void 0 ? void 0 : metadata.workspace_members;
     (0, core_1.debug)(`got workspace members: ${JSON.stringify(pkgs)}`);
     // only bother looping if we're searching for something
     if (crate.name || crate.path) {
@@ -306,11 +306,16 @@ async function pkgid(crate = {}) {
         else {
             throw new Error('multiple crates in the workspace, but crate-release-all=false');
         }
+        const allPkgs = metadata === null || metadata === void 0 ? void 0 : metadata.packages;
         const parsed = [];
         let previousVersion = null;
         for (const pkg of pkgs) {
             const p = parseWorkspacePkg(pkg);
             if (p) {
+                const fullPkgInfo = allPkgs.find(element => element.name === p.name);
+                if (!fullPkgInfo.publish === null) {
+                    continue;
+                }
                 // ensure that all packages in the workspace have the same version
                 if (!previousVersion) {
                     previousVersion = p.version;
