@@ -436,7 +436,7 @@ function realpath(path: string): string {
 type WorkspaceMemberString = `${string} ${string} (${string})`;
 interface FullPkgInfo {
 	name: string;
-	publish: undefined;
+	publish: [];
 }
 
 async function pkgid(crate: CrateArgs = {}): Promise<CrateDetails[]> {
@@ -495,7 +495,9 @@ async function pkgid(crate: CrateArgs = {}): Promise<CrateDetails[]> {
 				const fullPkgInfo = allPkgs.find(
 					element => element.name === p.name
 				) as FullPkgInfo;
-				if (!fullPkgInfo.publish === null) {
+				// "publish": null means publishing the crate.
+				// "publish": [] means `publish = false` in crate's Cargo.toml.
+				if (Array.isArray(fullPkgInfo.publish)) {
 					continue;
 				}
 				// ensure that all packages in the workspace have the same version
