@@ -434,6 +434,10 @@ function realpath(path: string): string {
 }
 
 type WorkspaceMemberString = `${string} ${string} (${string})`;
+interface FullPkgInfo {
+	name: string;
+	publish: undefined;
+}
 
 async function pkgid(crate: CrateArgs = {}): Promise<CrateDetails[]> {
 	// we actually use cargo-metadata so it works without a Cargo.lock
@@ -444,9 +448,11 @@ async function pkgid(crate: CrateArgs = {}): Promise<CrateDetails[]> {
 		`checking and parsing metadata to find name=${crate.name} path=${crate.path}`
 	);
 
-	const pkgs: WorkspaceMemberString[] = JSON.parse(
+	const metadata = JSON.parse(
 		await execWithOutput('cargo', ['metadata', '--format-version=1'])
-	)?.workspace_members;
+	);
+	const pkgs: WorkspaceMemberString[] = metadata?.workspace_members;
+
 	debug(`got workspace members: ${JSON.stringify(pkgs)}`);
 
 	// only bother looping if we're searching for something
@@ -478,12 +484,20 @@ async function pkgid(crate: CrateArgs = {}): Promise<CrateDetails[]> {
 			);
 		}
 
+		const allPkgs: FullPkgInfo[] = metadata?.packages;
+
 		const parsed: CrateDetails[] = [];
 		let previousVersion = null;
 
 		for (const pkg of pkgs) {
 			const p = parseWorkspacePkg(pkg);
 			if (p) {
+				const fullPkgInfo = allPkgs.find(
+					element => element.name === p.name
+				) as FullPkgInfo;
+				if (!fullPkgInfo.publish === null) {
+					continue;
+				}
 				// ensure that all packages in the workspace have the same version
 				if (!previousVersion) {
 					previousVersion = p.version;
