@@ -313,7 +313,9 @@ async function pkgid(crate = {}) {
             const p = parseWorkspacePkg(pkg);
             if (p) {
                 const fullPkgInfo = allPkgs.find(element => element.name === p.name);
-                if (!fullPkgInfo.publish === null) {
+                // "publish": null means publishing the crate.
+                // "publish": [] means `publish = false` in crate's Cargo.toml.
+                if (Array.isArray(fullPkgInfo.publish)) {
                     continue;
                 }
                 // ensure that all packages in the workspace have the same version
